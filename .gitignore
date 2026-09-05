@@ -1,9 +1,15 @@
-# Python
+# Python bytecode cache
 __pycache__/
 *.py[cod]
+
+# venv
+venv/
 .venv/
 
-# Environment & OS
-.env
+# Jupyter Notebook auto-saves
+.ipynb_checkpoints/
+
+# OS / Editor
 .DS_Store
+Thumbs.db
 .vscode/
