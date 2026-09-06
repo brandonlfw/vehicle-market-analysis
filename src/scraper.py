@@ -1,5 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
+import time
+import pandas as pd
+
+
 
 url = "https://vancouver.craigslist.org/search/cta" # cta = "cars & trucks - all" on Craigslist
 
@@ -54,14 +58,17 @@ def get_listing_details(cars_data):
     '''
     Scrape vehicle specs from each listings url from cars_data and update each car dict
     '''
-    for car in cars_data[:3]:
+    for car in cars_data[:10]:
         link = car["link"]
 
         if not link:
             continue # skip this car if no URL
 
-        response = requests.get(link, headers=headers)
-        print(f"Status code: {response.status_code}")
+        try:
+            response = requests.get(link, headers=headers, timeout=10)
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to fetch {link}: {e}")
+            continue
 
         soup = BeautifulSoup(response.text, "html.parser")
         listing_details = soup.find_all("div", class_="attr")
@@ -81,4 +88,10 @@ def get_listing_details(cars_data):
         print("Updated car details:", car)
         print("-"*40)
 
+        time.sleep(1) # Pause 1 second before the next request
+
 get_listing_details(cars_data=cars_data)
+
+df = pd.DataFrame(cars_data[:10])
+df.to_csv("data/raw/craigslist_van_cta_sample.csv", index=False)
+print("Saved sample to data/raw/craigslist_van_cta_sample.csv")
