@@ -46,8 +46,39 @@ for car in listings:
 
     cars_data.append(car_info)
 
+print(f"Car data on {len(cars_data)} listings found.")
 
-print(f"Car data on {len(cars_data)} listings found. Displaying first 10 listings found:")
 
-for car in cars_data[:10]:
-    print(car)
+
+def get_listing_details(cars_data):
+    '''
+    Scrape vehicle specs from each listings url from cars_data and update each car dict
+    '''
+    for car in cars_data[:3]:
+        link = car["link"]
+
+        if not link:
+            continue # skip this car if no URL
+
+        response = requests.get(link, headers=headers)
+        print(f"Status code: {response.status_code}")
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        listing_details = soup.find_all("div", class_="attr")
+
+        specs = {}
+
+        for div in listing_details:
+            label = div.find("span", class_="labl")
+            value = div.find("span", class_="valu")
+
+            if label and value:
+                clean_label = label.text.replace(":", "").strip()
+                clean_value = value.text.strip()
+                specs[clean_label] = clean_value
+
+        car.update(specs)
+        print("Updated car details:", car)
+        print("-"*40)
+
+get_listing_details(cars_data=cars_data)
