@@ -58,7 +58,7 @@ def get_listing_details(cars_data):
     '''
     Scrape vehicle specs from each listings url from cars_data and update each car dict
     '''
-    for car in cars_data[:10]:
+    for i, car in enumerate(cars_data):
         link = car["link"]
 
         if not link:
@@ -85,13 +85,29 @@ def get_listing_details(cars_data):
                 specs[clean_label] = clean_value
 
         car.update(specs)
-        print("Updated car details:", car)
-        print("-"*40)
+        print(f"[{i + 1}/{len(cars_data)}] Scraped {car['name']}")
+        # print("-"*40)
 
         time.sleep(1) # Pause 1 second before the next request
 
-get_listing_details(cars_data=cars_data)
+    return cars_data
 
-df = pd.DataFrame(cars_data[:10])
-df.to_csv("data/raw/craigslist_van_cta_sample.csv", index=False)
-print("Saved sample to data/raw/craigslist_van_cta_sample.csv")
+# raw_data = get_listing_details(cars_data=cars_data)
+
+
+
+def clean_listing_details():
+    raw_df = pd.read_csv("data/raw/craigslist_van_cta_p1.csv")
+
+    # Remove '$' and ',' from price and odometer columns
+    raw_df['price'] = raw_df['price'].replace(r'[\$,]', '', regex=True)
+    raw_df["price"] = pd.to_numeric(raw_df["price"], errors="coerce")
+
+    raw_df['odometer'] = raw_df['odometer'].str.replace(',', '', regex=False)
+    raw_df["odometer"] = pd.to_numeric(raw_df["odometer"], errors="coerce")
+
+
+    raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False)
+    print(f"Cleaned CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
+
+clean_listing_details()
