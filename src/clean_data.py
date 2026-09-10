@@ -1,8 +1,20 @@
 import pandas as pd
 
 
-
+# Raw scraped data CSV file path
 raw_csv_path = "data/raw/craigslist_van_cta_p1.csv"
+
+# NRC Fuel Consumption Rating Files 1995-2026
+fcr_95_14 = "data/raw/my1995-2014-fuel-consumption-ratings-5-cycle.csv"
+fcr_15_24 = "data/raw/my2015-2024-fuel-consumption-ratings.csv"
+fcr_25 = "data/raw/my2025-fuel-consumption-ratings.csv"
+fcr_26 = "data/raw/my2026-fuel-consumption-ratings.csv"
+
+# Combine all the CSVs together as one master FCR df
+fcr_files = [fcr_95_14, fcr_15_24, fcr_25, fcr_26]
+fcr_dfs = [pd.read_csv(file, encoding="latin1") for file in fcr_files]
+fcr_master_df = pd.concat(fcr_dfs, ignore_index=True)
+
 
 
 def clean_listing_details(raw_csv_path):

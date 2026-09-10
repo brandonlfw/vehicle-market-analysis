@@ -1,4 +1,4 @@
-﻿Model year,Make,Model,Vehicle class,Engine size (L),Cylinders,Transmission,Fuel type,City (L/100 km),Highway (L/100 km),Combined (L/100 km),Combined (mpg),CO2 emissions (g/km),CO2 rating,Smog rating
+Model year,Make,Model,Vehicle class,Engine size (L),Cylinders,Transmission,Fuel type,City (L/100 km),Highway (L/100 km),Combined (L/100 km),Combined (mpg),CO2 emissions (g/km),CO2 rating,Smog rating
 2015,Acura,ILX,Compact,2,4,AS5,Z,9.7,6.7,8.3,34,191,n/a,n/a
 2015,Acura,ILX,Compact,2.4,4,M6,Z,10.8,7.4,9.3,30,214,n/a,n/a
 2015,Acura,ILX Hybrid,Compact,1.5,4,AV7,Z,6,6.1,6.1,46,140,n/a,n/a
