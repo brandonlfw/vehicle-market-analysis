@@ -16,6 +16,43 @@ fcr_dfs = [pd.read_csv(file, encoding="latin1") for file in fcr_files]
 fcr_master_df = pd.concat(fcr_dfs, ignore_index=True)
 
 
+# Get a list of the unique Makes from the master dataset
+all_makes = fcr_master_df['Make'].dropna().unique().tolist()
+all_makes = sorted(all_makes, key=len, reverse=True)
+
+make_aliases = {
+    "vw": "Volkswagen",
+    "v.w.": "Volkswagen",
+    "chevy": "Chevrolet",
+    "mercedes": "Mercedes-Benz",
+    "benz": "Mercedes-Benz"
+}
+
+
+def extract_make(name):
+    '''
+    Extracts the vehicle's make by checking if an alias or the actual make is in the 'name' entry of each listing in raw_df
+    '''
+
+    # If the title is missing or not a string, return None
+    if not isinstance(name, str):
+        return None
+
+    name = name.lower()
+
+    # Check for makes that are written as aliases in the 'name' value
+    for alias, make in make_aliases.items():
+        if alias in name.split():
+            return make
+
+    # Check if actual make is inside the 'name' value
+    for make in all_makes:
+        if make.lower() in name:
+            return make
+
+    return None
+
+
 
 def clean_listing_details(raw_csv_path):
     '''
@@ -43,7 +80,7 @@ def clean_listing_details(raw_csv_path):
     raw_df['cylinders'] = pd.to_numeric(raw_df['cylinders'], errors="coerce")
 
     # Filter out 'WANTED' listings
-    raw_df = raw_df[~raw_df['name'].str.contains('WANTED|WTB', case=False, na=False)]
+    raw_df = raw_df[~raw_df['name'].str.contains('WANTED|WTB|W.T.B.', case=False, na=False)]
 
     # Filter out underpriced listings
     raw_df = raw_df.loc[raw_df['price'] >= 1000]
@@ -51,8 +88,11 @@ def clean_listing_details(raw_csv_path):
     # Drop rows that are missing price, mileage, or year
     raw_df = raw_df.dropna(subset=['price', 'odometer', 'year'])
 
+    # Extract the make from the 'name' column
+    raw_df['make'] = raw_df['name'].apply(extract_make)
 
-    raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False)
+    # Export the cleaned and updated df as a CSV to /data/processed/
+    raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False, encoding="utf-8-sig")
     print(f"Cleaned CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
 
 
