@@ -28,6 +28,12 @@ make_aliases = {
     "benz": "Mercedes-Benz"
 }
 
+# Create a dict of all the unique Models from the master dataset
+models_by_make = fcr_master_df.groupby('Make')['Model'].unique().to_dict()
+
+# for make, model in models_by_make.items():
+#     print(f"Make: {make}, models: {model}")
+
 
 def extract_make(name):
     '''
@@ -49,6 +55,33 @@ def extract_make(name):
     for make in all_makes:
         if make.lower() in name:
             return make
+
+    return None
+
+
+
+def extract_model(name, make):
+    '''
+    Extract the vehicle model from the 'name' and 'make' values
+    '''
+
+    # Return none if the 'name' value is not a string or if the 'make' is empty
+    if not isinstance(name, str) or pd.isna(make):
+        return None
+
+    name = name.lower()
+
+    # Get all the models for the make parameter
+    models = models_by_make.get(make)
+
+    if models is None:
+        return None
+
+    sorted_models = sorted(models, key=len, reverse=True)
+
+    for model in sorted_models:
+        if model.lower() in name:
+            return model
 
     return None
 
@@ -90,6 +123,12 @@ def clean_listing_details(raw_csv_path):
 
     # Extract the make from the 'name' column
     raw_df['make'] = raw_df['name'].apply(extract_make)
+
+    # Extract the model from the 'name' column
+    raw_df['model'] = raw_df.apply(
+        lambda row: extract_model(row['name'], row['make']),
+        axis=1
+    )
 
     # Export the cleaned and updated df as a CSV to /data/processed/
     raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False, encoding="utf-8-sig")
