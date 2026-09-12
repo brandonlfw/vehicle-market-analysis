@@ -61,7 +61,7 @@ models_by_make = fcr_master_df.groupby('Make')['cleaned_model'].unique().to_dict
 
 # Export mega FCR dataset to CSV
 fcr_master_df.to_csv("data/processed/1995-2026-fuel-consumption-ratings.csv", index=False, encoding="utf-8-sig")
-print(f"Cleaned model names for 1995-2026 FCR and asved to data/processed/1995-2026-fuel-consumption-ratings.csv")
+print(f"Cleaned model names for 1995-2026 FCR and saved to data/processed/1995-2026-fuel-consumption-ratings.csv")
 
 
 
@@ -90,6 +90,16 @@ def extract_make(name):
 
 
 
+def normalize_name(text):
+    '''
+    Normalizes text for matching by handling ampersands and removing punctuation/spaces.
+    '''
+
+    text = text.lower().replace('&', ' and ')
+    return "".join(c for c in text if c.isalnum())
+
+
+
 def extract_model(name, make):
     '''
     Extract the vehicle model from the 'name' and 'make' values
@@ -99,9 +109,7 @@ def extract_model(name, make):
     if not isinstance(name, str) or pd.isna(make):
         return None
 
-    name = name.lower()
-
-    # Get all the models for the make parameter
+    # Get all the models (list) for the make parameter
     models = models_by_make.get(make)
 
     if models is None:
@@ -109,8 +117,25 @@ def extract_model(name, make):
 
     sorted_models = sorted(models, key=len, reverse=True)
 
+    # Pass 1: Exact substring match
+    name_lower = name.lower()
+
     for model in sorted_models:
-        if model.lower() in name:
+        if model.lower() in name_lower:
+            return model
+
+
+    # Pass 2: Normalize text (handles spacing/hyphen differences like CR-V -> crv, F-150 -> f150, E 350 -> e350)
+    norm_name = normalize_name(name)
+
+    for model in sorted_models:
+        norm_model = normalize_name(model) # Normalize the FCR model names to compare with scraped 'name' value
+
+        # Require 3+ chars, or 2 chars if containing a digit (ex. '93' for '9-3') to prevent false matches
+        if (
+            len(norm_model) >= 3 or 
+            (len(norm_model) >= 2 and any(c.isdigit() for c in norm_model))
+        ) and norm_model in norm_name:
             return model
 
     return None
