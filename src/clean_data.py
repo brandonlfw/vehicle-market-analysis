@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 
 # Raw scraped data CSV file path
@@ -28,11 +29,40 @@ make_aliases = {
     "benz": "Mercedes-Benz"
 }
 
-# Create a dict of all the unique Models from the master dataset
-models_by_make = fcr_master_df.groupby('Make')['Model'].unique().to_dict()
 
-# for make, model in models_by_make.items():
-#     print(f"Make: {make}, models: {model}")
+
+def clean_fcr_model(model):
+    '''
+    Strips text in brackets (ex. '(2-Door)') and trims/drive-types (e.g. '4X4', 'AWD') from the 'Model' value in the masterdataset.
+    Returns the model name without trailing suffixes, parenthesized text, or symbols.
+    '''
+
+    # Remove parentheses and text inside like '(2-Door)' and symbols '#' and '*'
+    cleaned_model = re.sub(r'\s*\(.*?\)\s*|[#*]', '', str(model))
+
+    # Repeatedly strip common trailing suffixes from the end of the model name
+    while True:
+        prev = cleaned_model
+        cleaned_model = re.sub(
+            r'\s+\b(4x4|4wd|awd|2wd|fwd|rwd|quattro|4matic|xdrive|turbo|supercharged|hybrid|ffv|diesel|sedan|coupe|wagon|convertible|cabriolet|hatchback|sportback|roadster|all-terrain)\b.*$',
+            '',
+            cleaned_model,
+            flags=re.IGNORECASE
+        ).strip()
+
+        # If the model name did not change from previous iteration, return it
+        if cleaned_model == prev:
+            return cleaned_model.strip()
+
+
+# Extract clean model name for each model on master dataset and create a dict of all unique models
+fcr_master_df['cleaned_model'] = fcr_master_df['Model'].apply(clean_fcr_model)
+models_by_make = fcr_master_df.groupby('Make')['cleaned_model'].unique().to_dict()
+
+# Export mega FCR dataset to CSV
+fcr_master_df.to_csv("data/processed/1995-2026-fuel-consumption-ratings.csv", index=False, encoding="utf-8-sig")
+print(f"Cleaned model names for 1995-2026 FCR and asved to data/processed/1995-2026-fuel-consumption-ratings.csv")
+
 
 
 def extract_make(name):
@@ -132,7 +162,7 @@ def clean_listing_details(raw_csv_path):
 
     # Export the cleaned and updated df as a CSV to /data/processed/
     raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False, encoding="utf-8-sig")
-    print(f"Cleaned CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
+    print(f"Cleaned scraped vehicles CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
 
 
 
