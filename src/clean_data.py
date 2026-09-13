@@ -33,7 +33,7 @@ make_aliases = {
 
 def clean_fcr_model(model):
     '''
-    Strips text in brackets (ex. '(2-Door)') and trims/drive-types (e.g. '4X4', 'AWD') from the 'Model' value in the masterdataset.
+    Strips text in brackets (ex. '(2-Door)') and trims/drive-types (ex. '4X4', 'AWD') from the 'Model' value in the masterdataset.
     Returns the model name without trailing suffixes, parenthesized text, or symbols.
     '''
 
@@ -53,6 +53,32 @@ def clean_fcr_model(model):
         # If the model name did not change from previous iteration, return it
         if cleaned_model == prev:
             return cleaned_model.strip()
+
+
+
+def calc_median_fcr(make, cleaned_model, year, cylinders):
+    '''
+    Return the median city, hwy, and combined mileage (L/100 km) for each listing in the fcr_master_df
+    '''
+
+    # Pass 1: with cylinders
+    if pd.notna(cylinders):
+        with_cy_df = fcr_master_df.loc[
+            (fcr_master_df['Make'] == make) &
+            (fcr_master_df['cleaned_model'] == cleaned_model) &
+            (fcr_master_df['Model year'] == year) &
+            (fcr_master_df['Cylinders'] == cylinders)
+        ]
+        city_mileage = with_cy_df['City (L/100 km)'].median()
+        hwy_mileage = with_cy_df['Highway (L/100 km)'].median()
+        combined_mileage = with_cy_df['Combined (L/100 km)'].median()
+
+        return pd.Series([city_mileage, hwy_mileage, combined_mileage])
+
+    # Pass 2: without cylinders
+    else:
+        return pd.Series([None, None, None])
+    
 
 
 # Extract clean model name for each model on master dataset and create a dict of all unique models
@@ -183,6 +209,15 @@ def clean_listing_details(raw_csv_path):
     raw_df['model'] = raw_df.apply(
         lambda row: extract_model(row['name'], row['make']),
         axis=1
+    )
+
+    # Retrieve the City, Highway, and Combined L/100km mileage rating for each listing
+    raw_df[['City (L/100 km)', 'Highway (L/100 km)', 'Combined (L/100 km)']] = raw_df.apply(
+        lambda row: calc_median_fcr(
+            row['make'], row['model'], row['year'], row['cylinders']
+        ),
+        axis=1,
+        result_type='expand',
     )
 
     # Export the cleaned and updated df as a CSV to /data/processed/
