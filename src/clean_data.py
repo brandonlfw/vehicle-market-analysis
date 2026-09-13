@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 
 
@@ -59,25 +60,74 @@ def clean_fcr_model(model):
 def calc_median_fcr(make, cleaned_model, year, cylinders):
     '''
     Return the median city, hwy, and combined mileage (L/100 km) for each listing in the fcr_master_df
+    using hierarchical fallback (exact -> prefix with cyl -> model only -> prefix -> reverse prefix).
     '''
 
-    # Pass 1: with cylinders
+    # Skip processing if any required column is missing
+    if pd.isna(make) or pd.isna(cleaned_model) or pd.isna(year):
+        return pd.Series([np.nan, np.nan, np.nan])
+
+    # Narrow down the FCR df by Make and Year (my) first
+    my_df = fcr_master_df.loc[
+        (fcr_master_df['Make'] == make) &
+        (fcr_master_df['Model year'] == year)
+    ]
+    if my_df.empty:
+        return pd.Series([np.nan, np.nan, np.nan])
+
+    matched_df = pd.DataFrame()
+
+
+    # 1) Exact model match + cylinders
     if pd.notna(cylinders):
-        with_cy_df = fcr_master_df.loc[
-            (fcr_master_df['Make'] == make) &
-            (fcr_master_df['cleaned_model'] == cleaned_model) &
-            (fcr_master_df['Model year'] == year) &
-            (fcr_master_df['Cylinders'] == cylinders)
+        exact_cy_match = my_df.loc[
+            (my_df['cleaned_model'] == cleaned_model) &
+            (my_df['Cylinders'] == cylinders)
         ]
-        city_mileage = with_cy_df['City (L/100 km)'].median()
-        hwy_mileage = with_cy_df['Highway (L/100 km)'].median()
-        combined_mileage = with_cy_df['Combined (L/100 km)'].median()
+        if not exact_cy_match.empty:
+            matched_df = exact_cy_match
 
-        return pd.Series([city_mileage, hwy_mileage, combined_mileage])
+    # 2) Prefix match + cylinders (ex. 4-cyl 'Santa Fe' -> 'Santa Fe Sport', 5-cyl 'S60' -> 'S60 2.5T')
+    if matched_df.empty and pd.notna(cylinders):
+        prefix_cy_match = my_df.loc[
+            (my_df['cleaned_model'].str.startswith(cleaned_model, na=False)) &
+            (my_df['Cylinders'] == cylinders)
+        ]
+        if not prefix_cy_match.empty:
+            matched_df = prefix_cy_match
 
-    # Pass 2: without cylinders
-    else:
-        return pd.Series([None, None, None])
+    # 3) Exact model match WITHOUT cylinders (fallback if cylinders did not match or were missing)
+    if matched_df.empty:
+        exact_match = my_df.loc[my_df['cleaned_model'] == cleaned_model]
+        if not exact_match.empty:
+            matched_df = exact_match
+
+    # 4) Prefix match WITHOUT cylinders (fallback for underspecified models with typos or missing characters)
+    if matched_df.empty:
+        prefix_match = my_df.loc[my_df['cleaned_model'].str.startswith(cleaned_model, na=False)]
+        if not prefix_match.empty:
+            matched_df = prefix_match
+
+    # 5) Reverse prefix match (fallback for overspecified listings like 'Accord EX', but NRC only has 'Accord')
+    if matched_df.empty:
+        for fcr_model in my_df['cleaned_model'].dropna().unique():
+            # Check if any FCR cleaned_model name is inside the extracted listing model name and gets the subset of rows for that FCR cleaned_model
+            if cleaned_model.startswith(fcr_model):
+                rev_match = my_df.loc[my_df['cleaned_model'] == fcr_model]
+                if not rev_match.empty:
+                    matched_df = rev_match
+                    break
+
+    # If no matches across all fallbacks, return NaN
+    if matched_df.empty:
+        return pd.Series([np.nan, np.nan, np.nan])
+
+    # Compute medians once
+    return pd.Series([
+        matched_df['City (L/100 km)'].median(),
+        matched_df['Highway (L/100 km)'].median(),
+        matched_df['Combined (L/100 km)'].median()
+    ])
     
 
 
