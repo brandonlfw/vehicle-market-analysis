@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 
 
 # Raw scraped data CSV file path
-raw_csv_path = "data/raw/craigslist_van_cta_p1.csv"
+# raw_csv_path = "data/raw/craigslist_van_cta_p1.csv"
+raw_csv_path = "data/raw/craigslist_van_cta_all.csv"
 
 # NRC Fuel Consumption Rating Files 1995-2026
 fcr_95_14 = "data/raw/my1995-2014-fuel-consumption-ratings-5-cycle.csv"
@@ -218,10 +220,13 @@ def extract_model(name, make):
 
 
 
-def clean_listing_details(raw_csv_path):
+def clean_listing_details(raw_csv_path, output_csv_path=None):
     '''
     Cleans data, adds 'year' and 'age' columns, and filters out rows that do not meet requirements for model
     '''
+    if output_csv_path is None:
+        filename = os.path.basename(raw_csv_path)
+        output_csv_path = f"data/processed/cleaned_{filename}"
 
     raw_df = pd.read_csv(raw_csv_path)
 
@@ -229,7 +234,7 @@ def clean_listing_details(raw_csv_path):
     raw_df['price'] = raw_df['price'].replace(r'[\$,]', '', regex=True)
     raw_df["price"] = pd.to_numeric(raw_df["price"], errors="coerce")
 
-    raw_df['odometer'] = raw_df['odometer'].str.replace(',', '', regex=False)
+    raw_df['odometer'] = raw_df['odometer'].replace(r'[,]', '', regex=True)
     raw_df["odometer"] = pd.to_numeric(raw_df["odometer"], errors="coerce")
 
     # Extract the car year into a separate 'year' column
@@ -271,8 +276,8 @@ def clean_listing_details(raw_csv_path):
     )
 
     # Export the cleaned and updated df as a CSV to /data/processed/
-    raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False, encoding="utf-8-sig")
-    print(f"Cleaned scraped vehicles CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
+    raw_df.to_csv(output_csv_path, index=False, encoding="utf-8-sig")
+    print(f"Cleaned scraped vehicles CSV saved to {output_csv_path}")
 
 
 
