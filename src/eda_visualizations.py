@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+
 # Create the folder where charts will be saved
 os.makedirs("reports/figures", exist_ok=True)
 
@@ -10,6 +11,7 @@ df = pd.read_csv("data/processed/featured_craigslist_van_cta_all.csv")
 
 # Filter out extreme outliers (collector cars > 25 yrs and ultra luxury > $80,000)
 filtered_df = df[(df['age'] <= 25) & (df['price'].between(1000, 80000))].copy()
+
 
 
 # CHART 1: Metro Vancouver Depreciation Curve (Price vs. Age)
@@ -53,6 +55,29 @@ def plot_residual_value(df):
     plt.close()
 
 
+
+# CHART 3: Clean vs. Rebuilt Title Median Asking Price
+def plot_clean_vs_rebuilt(df):
+    cr_df = df.loc[
+        (df['title status'].isin(['clean', 'rebuilt'])) &
+        (df['age'] <= 15)
+    ]
+
+    cr_df['age'] = cr_df['age'].astype(int)
+
+    plt.figure(figsize=(12, 6))
+
+    sns.barplot(data=cr_df, x='age', y='price', hue='title status', estimator='median', errorbar=None, hue_order=['clean', 'rebuilt'])
+    plt.title("Clean vs. Rebuilt Vehicle Median Asking Price Over Time")
+    plt.xlabel("Vehicle Age (Years)")
+    plt.ylabel("Median Asking Price (CAD)")
+
+    plt.savefig("reports/figures/03_clean_vs_rebuilt.png")
+    plt.close()
+
+
+
 if __name__ == "__main__":
     plot_depreciation_curve(filtered_df)
     plot_residual_value(filtered_df)
+    plot_clean_vs_rebuilt(filtered_df)
