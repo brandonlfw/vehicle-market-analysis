@@ -32,6 +32,37 @@ make_aliases = {
     "benz": "Mercedes-Benz"
 }
 
+jap_cars = [
+    'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru',
+    'Lexus', 'Acura', 'Infiniti', 'Mitsubishi', 'Suzuki', 'Scion', 'Isuzu'
+]
+
+usa_cars = [
+    'Ford', 'Chevrolet', 'Dodge', 'GMC', 'Jeep', 'Ram',
+    'Chrysler', 'Buick', 'Cadillac', 'Lincoln', 'Pontiac',
+    'Saturn', 'Hummer', 'Mercury', 'Plymouth', 'Oldsmobile'
+]
+
+kor_cars = [
+    'Hyundai', 'Kia', 'Genesis'
+]
+
+eur_cars = [
+    'BMW', 'Mercedes-Benz', 'Volkswagen', 'Audi', 'Porsche',
+    'Volvo', 'Land Rover', 'MINI', 'Jaguar', 'FIAT', 'smart', 'Saab'
+]
+
+cars_by_geo = {}
+
+for car in jap_cars:
+    cars_by_geo[car] = 'Japanese'
+for car in usa_cars:
+    cars_by_geo[car] = 'American'
+for car in kor_cars:
+    cars_by_geo[car] = 'Korean'
+for car in eur_cars:
+    cars_by_geo[car] = 'European'
+
 
 
 def clean_fcr_model(model):
@@ -274,6 +305,9 @@ def clean_listing_details(raw_csv_path, output_csv_path=None):
         axis=1,
         result_type='expand',
     )
+
+    # Retrieve the geographical market of the vehicle
+    raw_df['market'] = raw_df['make'].map(cars_by_geo)
 
     # Export the cleaned and updated df as a CSV to /data/processed/
     raw_df.to_csv(output_csv_path, index=False, encoding="utf-8-sig")
