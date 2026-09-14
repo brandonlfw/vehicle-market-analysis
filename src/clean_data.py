@@ -241,8 +241,8 @@ def clean_listing_details(raw_csv_path, output_csv_path=None):
     raw_df['year'] = raw_df['name'].str.extract(r"\b(19\d\d|20[0-2]\d)\b")
     raw_df['year'] = pd.to_numeric(raw_df['year'], errors="coerce")
 
-    # Calculate vehicle age
-    raw_df['age'] = 2026 - raw_df['year']
+    # Calculate vehicle age (minimum 1 year to reflect 1st year of life and avoid division by zero)
+    raw_df['age'] = (2026 - raw_df['year']).clip(lower=1)
 
     # Extract only the number in the cylinders column
     raw_df['cylinders'] = raw_df['cylinders'].str.extract(r'(\d+)')
