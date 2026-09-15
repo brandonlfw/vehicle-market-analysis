@@ -77,7 +77,29 @@ def plot_clean_vs_rebuilt(df):
 
 
 
+# CHART 4: Usage Category vs Price
+def plot_odo_vs_price(df):
+    bins = [0, 50000, 100000, 150000, 200000, 250000, float('inf')]
+    labels = ['< 50k', '50k-100k', '100k-150k', '150k-200k', '200k-250k', '250k+']
+
+    odo_df = df.dropna(subset=['odometer']).copy()
+
+    odo_df['mileage_tier'] = pd.cut(odo_df['odometer'], bins=bins, labels=labels, right=False)
+
+    plt.figure(figsize=(10, 6))
+
+    sns.boxplot(data=odo_df, x='mileage_tier', y='price', color='#3498db')
+    plt.title("Mileage vs. Asking Price")
+    plt.xlabel("Mileage Tier (km)")
+    plt.ylabel("Asking Price (CAD)")
+
+    plt.savefig("reports/figures/04_mileage_vs_price.png")
+    plt.close()
+
+
+
 if __name__ == "__main__":
     plot_depreciation_curve(filtered_df)
     plot_residual_value(filtered_df)
     plot_clean_vs_rebuilt(filtered_df)
+    plot_odo_vs_price(filtered_df)
