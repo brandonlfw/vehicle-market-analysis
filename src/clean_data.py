@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 
 
 # Raw scraped data CSV file path
-raw_csv_path = "data/raw/craigslist_van_cta_p1.csv"
+# raw_csv_path = "data/raw/craigslist_van_cta_p1.csv"
+raw_csv_path = "data/raw/craigslist_van_cta_all.csv"
 
 # NRC Fuel Consumption Rating Files 1995-2026
 fcr_95_14 = "data/raw/my1995-2014-fuel-consumption-ratings-5-cycle.csv"
@@ -29,6 +31,37 @@ make_aliases = {
     "mercedes": "Mercedes-Benz",
     "benz": "Mercedes-Benz"
 }
+
+jap_cars = [
+    'Toyota', 'Honda', 'Nissan', 'Mazda', 'Subaru',
+    'Lexus', 'Acura', 'Infiniti', 'Mitsubishi', 'Suzuki', 'Scion', 'Isuzu'
+]
+
+usa_cars = [
+    'Ford', 'Chevrolet', 'Dodge', 'GMC', 'Jeep', 'Ram',
+    'Chrysler', 'Buick', 'Cadillac', 'Lincoln', 'Pontiac',
+    'Saturn', 'Hummer', 'Mercury', 'Plymouth', 'Oldsmobile'
+]
+
+kor_cars = [
+    'Hyundai', 'Kia', 'Genesis'
+]
+
+eur_cars = [
+    'BMW', 'Mercedes-Benz', 'Volkswagen', 'Audi', 'Porsche',
+    'Volvo', 'Land Rover', 'MINI', 'Jaguar', 'FIAT', 'smart', 'Saab'
+]
+
+cars_by_geo = {}
+
+for car in jap_cars:
+    cars_by_geo[car] = 'Japanese'
+for car in usa_cars:
+    cars_by_geo[car] = 'American'
+for car in kor_cars:
+    cars_by_geo[car] = 'Korean'
+for car in eur_cars:
+    cars_by_geo[car] = 'European'
 
 
 
@@ -218,10 +251,13 @@ def extract_model(name, make):
 
 
 
-def clean_listing_details(raw_csv_path):
+def clean_listing_details(raw_csv_path, output_csv_path=None):
     '''
     Cleans data, adds 'year' and 'age' columns, and filters out rows that do not meet requirements for model
     '''
+    if output_csv_path is None:
+        filename = os.path.basename(raw_csv_path)
+        output_csv_path = f"data/processed/cleaned_{filename}"
 
     raw_df = pd.read_csv(raw_csv_path)
 
@@ -229,15 +265,15 @@ def clean_listing_details(raw_csv_path):
     raw_df['price'] = raw_df['price'].replace(r'[\$,]', '', regex=True)
     raw_df["price"] = pd.to_numeric(raw_df["price"], errors="coerce")
 
-    raw_df['odometer'] = raw_df['odometer'].str.replace(',', '', regex=False)
+    raw_df['odometer'] = raw_df['odometer'].replace(r'[,]', '', regex=True)
     raw_df["odometer"] = pd.to_numeric(raw_df["odometer"], errors="coerce")
 
     # Extract the car year into a separate 'year' column
     raw_df['year'] = raw_df['name'].str.extract(r"\b(19\d\d|20[0-2]\d)\b")
     raw_df['year'] = pd.to_numeric(raw_df['year'], errors="coerce")
 
-    # Calculate vehicle age
-    raw_df['age'] = 2026 - raw_df['year']
+    # Calculate vehicle age (minimum 1 year to reflect 1st year of life and avoid division by zero)
+    raw_df['age'] = (2026 - raw_df['year']).clip(lower=1)
 
     # Extract only the number in the cylinders column
     raw_df['cylinders'] = raw_df['cylinders'].str.extract(r'(\d+)')
@@ -270,9 +306,12 @@ def clean_listing_details(raw_csv_path):
         result_type='expand',
     )
 
+    # Retrieve the geographical market of the vehicle
+    raw_df['market'] = raw_df['make'].map(cars_by_geo)
+
     # Export the cleaned and updated df as a CSV to /data/processed/
-    raw_df.to_csv("data/processed/cleaned_craigslist_van_cta_p1.csv", index=False, encoding="utf-8-sig")
-    print(f"Cleaned scraped vehicles CSV saved to data/processed/cleaned_craigslist_van_cta_p1.csv")
+    raw_df.to_csv(output_csv_path, index=False, encoding="utf-8-sig")
+    print(f"Cleaned scraped vehicles CSV saved to {output_csv_path}")
 
 
 
