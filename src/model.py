@@ -6,6 +6,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
@@ -82,7 +83,7 @@ def calc_error(y_true, y_pred):
         median_error = 'median'
     ).round(2)
 
-    print(group_summary)
+    print(group_summary, '\n')
 
 
 
@@ -99,11 +100,32 @@ y_pred_baseline = baseline_model.predict(X_test_prep)
 mae_baseline = mean_absolute_error(y_test, y_pred_baseline) # (true values, predicted values)
 r2_baseline = r2_score(y_test, y_pred_baseline)
 
-print("\nBaseline Linear Regression Results:")
+print("\n--- Baseline Linear Regression Results ---")
 print(f"R-squared Score: {r2_baseline:.3f}")
 print(f"Average Error (MAE): ${mae_baseline:,.2f}\n")
 
 
 
+# MODEL 2: Random Forest Generator
+
+# 1. Create and train 100 decision trees
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_model.fit(X_train_prep, y_train)
+
+y_pred_rf = rf_model.predict(X_test_prep)
+
+mae_rf = mean_absolute_error(y_test, y_pred_rf)
+r2_rf = r2_score(y_test, y_pred_rf)
+
+print("\n--- Random Forest Results ---")
+print(f"R-squared Score: {r2_rf:.3f}")
+print(f"Average Error (MAE): ${mae_rf:,.2f}")
+
+
+
 if __name__ == "__main__":
+    print("\nGrading the baseline linear regression model:")
     calc_error(y_test, y_pred_baseline)
+
+    print("Grading the random forest model:")
+    calc_error(y_test, y_pred_rf)
