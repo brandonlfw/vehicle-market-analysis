@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
@@ -35,8 +36,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-print("Raw X_train shape:", X_train.shape)
-print("Raw X_test shape:", X_test.shape)
+# print("Raw X_train shape:", X_train.shape)
+# print("Raw X_test shape:", X_test.shape)
 
 
 # 1. Pipeline for numerical columns: fill blanks with column median, then set mean = 0 for each column and scale values as # std deviations from mean
@@ -61,8 +62,8 @@ preprocessor = ColumnTransformer(transformers=[
 X_train_prep = preprocessor.fit_transform(X_train) # the 86 features
 X_test_prep = preprocessor.transform(X_test)
 
-print("Preprocessed X_train shape:", X_train_prep.shape)
-print("Preprocessed X_test shape:", X_test_prep.shape)
+# print("Preprocessed X_train shape:", X_train_prep.shape)
+# print("Preprocessed X_test shape:", X_test_prep.shape)
 
 
 
@@ -105,6 +106,9 @@ print("\n--- Baseline Linear Regression Results ---")
 print(f"R-squared Score: {r2_baseline:.3f}")
 print(f"Average Error (MAE): ${mae_baseline:,.2f}\n")
 
+print("\nGrading the baseline linear regression model:")
+calc_error(y_test, y_pred_baseline)
+
 
 
 # MODEL 2: Random Forest Generator
@@ -122,6 +126,9 @@ print("\n--- Random Forest Results ---")
 print(f"R-squared Score: {r2_rf:.3f}")
 print(f"Average Error (MAE): ${mae_rf:,.2f}")
 
+print("Grading the random forest model:")
+calc_error(y_test, y_pred_rf)
+
 
 
 # MODEL 3: XGBoost Regressor
@@ -138,14 +145,36 @@ print("\n--- XGBoost Results ---")
 print(f"R-squared Score: {r2_xgb:.3f}")
 print(f"Average Error (MAE): ${mae_xgb:,.2f}")
 
+print("Grading the XGB Regressor model:")
+calc_error(y_test, y_pred_xgb)
 
 
-if __name__ == "__main__":
-    print("\nGrading the baseline linear regression model:")
-    calc_error(y_test, y_pred_baseline)
 
-    print("Grading the random forest model:")
-    calc_error(y_test, y_pred_rf)
+# Feature Importance
 
-    print("Grading the XGB Regressor model:")
-    calc_error(y_test, y_pred_xgb)
+feature_names = preprocessor.get_feature_names_out()
+clean_feature_names = [f.replace('num__', '').replace('cat__', '') for f in feature_names]
+
+importances = pd.Series(rf_model.feature_importances_, index=clean_feature_names)
+
+top10_features = importances.sort_values(ascending=False).head(10)
+print("\n--- Top 10 Most Important Features Driving Vehicle Price ---")
+print((top10_features * 100).round(2).to_string())
+
+# Plot as a clean horizontal bar chart scaled to 100%
+plt.figure(figsize=(10, 6))
+plot_data = (top10_features.sort_values() * 100)
+ax = plot_data.plot(kind='barh', color='#3498db', edgecolor='#2980b9', alpha=0.85)
+
+# Add exact percentage labels to the end of each bar for clarity
+for i, v in enumerate(plot_data):
+    ax.text(v + 1.2, i, f"{v:.1f}%", va='center', fontsize=9.5, fontweight='bold', color='#2c3e50')
+
+plt.title("Top 10 Features Driving Used Vehicle Prices in Metro Vancouver", fontsize=13, fontweight='bold')
+plt.xlabel("Relative Importance (% of Total Variance Explained)", fontsize=11, fontweight='bold')
+plt.xlim(0, 100)
+plt.grid(axis='x', linestyle='--', alpha=0.5)
+plt.tight_layout()
+plt.savefig("reports/figures/05_feature_importance.png", dpi=300)
+plt.close()
+print("\nSaved Feature vs. % Importance bar chart to reports/figures/05_feature_importance.png")
