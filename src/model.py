@@ -7,6 +7,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
@@ -108,7 +109,7 @@ print(f"Average Error (MAE): ${mae_baseline:,.2f}\n")
 
 # MODEL 2: Random Forest Generator
 
-# 1. Create and train 100 decision trees
+# Create and train 100 decision trees
 rf_model = RandomForestRegressor(n_estimators=100, random_state=42)
 rf_model.fit(X_train_prep, y_train)
 
@@ -123,9 +124,28 @@ print(f"Average Error (MAE): ${mae_rf:,.2f}")
 
 
 
+# MODEL 3: XGBoost Regressor
+# Create and train the sequential boosted trees
+xgb_model = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
+xgb_model.fit(X_train_prep, y_train)
+
+y_pred_xgb = xgb_model.predict(X_test_prep)
+
+mae_xgb = mean_absolute_error(y_test, y_pred_xgb)
+r2_xgb = r2_score(y_test, y_pred_xgb)
+
+print("\n--- XGBoost Results ---")
+print(f"R-squared Score: {r2_xgb:.3f}")
+print(f"Average Error (MAE): ${mae_xgb:,.2f}")
+
+
+
 if __name__ == "__main__":
     print("\nGrading the baseline linear regression model:")
     calc_error(y_test, y_pred_baseline)
 
     print("Grading the random forest model:")
     calc_error(y_test, y_pred_rf)
+
+    print("Grading the XGB Regressor model:")
+    calc_error(y_test, y_pred_xgb)
