@@ -102,12 +102,12 @@ y_pred_baseline = baseline_model.predict(X_test_prep)
 mae_baseline = mean_absolute_error(y_test, y_pred_baseline) # (true values, predicted values)
 r2_baseline = r2_score(y_test, y_pred_baseline)
 
-print("\n--- Baseline Linear Regression Results ---")
-print(f"R-squared Score: {r2_baseline:.3f}")
-print(f"Average Error (MAE): ${mae_baseline:,.2f}\n")
+# print("\n--- Baseline Linear Regression Results ---")
+# print(f"R-squared Score: {r2_baseline:.3f}")
+# print(f"Average Error (MAE): ${mae_baseline:,.2f}\n")
 
-print("\nGrading the baseline linear regression model:")
-calc_error(y_test, y_pred_baseline)
+# print("\nGrading the baseline linear regression model:")
+# calc_error(y_test, y_pred_baseline)
 
 
 
@@ -136,17 +136,18 @@ calc_error(y_test, y_pred_rf)
 xgb_model = XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
 xgb_model.fit(X_train_prep, y_train)
 
+
 y_pred_xgb = xgb_model.predict(X_test_prep)
 
 mae_xgb = mean_absolute_error(y_test, y_pred_xgb)
 r2_xgb = r2_score(y_test, y_pred_xgb)
 
-print("\n--- XGBoost Results ---")
-print(f"R-squared Score: {r2_xgb:.3f}")
-print(f"Average Error (MAE): ${mae_xgb:,.2f}")
+# print("\n--- XGBoost Results ---")
+# print(f"R-squared Score: {r2_xgb:.3f}")
+# print(f"Average Error (MAE): ${mae_xgb:,.2f}")
 
-print("Grading the XGB Regressor model:")
-calc_error(y_test, y_pred_xgb)
+# print("Grading the XGB Regressor model:")
+# calc_error(y_test, y_pred_xgb)
 
 
 
@@ -158,8 +159,8 @@ clean_feature_names = [f.replace('num__', '').replace('cat__', '') for f in feat
 importances = pd.Series(rf_model.feature_importances_, index=clean_feature_names)
 
 top10_features = importances.sort_values(ascending=False).head(10)
-print("\n--- Top 10 Most Important Features Driving Vehicle Price ---")
-print((top10_features * 100).round(2).to_string())
+# print("\n--- Top 10 Most Important Features Driving Vehicle Price ---")
+# print((top10_features * 100).round(2).to_string())
 
 # Plot as a clean horizontal bar chart scaled to 100%
 plt.figure(figsize=(10, 6))
@@ -177,4 +178,70 @@ plt.grid(axis='x', linestyle='--', alpha=0.5)
 plt.tight_layout()
 plt.savefig("reports/figures/05_feature_importance.png", dpi=300)
 plt.close()
-print("\nSaved Feature vs. % Importance bar chart to reports/figures/05_feature_importance.png")
+print("Saved Feature vs. % Importance bar chart to reports/figures/05_feature_importance.png\n")
+
+
+
+def predict_car_price(year, make, odometer,
+    car_type='sedan',
+    cylinders=4,
+    title_status='clean',
+    transmission='automatic',
+    drive='fwd',
+    fuel='gas',
+    fuel_consumption=9.0,
+    is_dealer=0,
+    asking_price=None
+):
+    '''
+    'year', 'make', 'odometer' are required args, but the rest will default to the values above if they are not set.
+    If the correct value for the args is known, setting it will yield much more accurate prices, especially for fuel_consumption.
+    Transforms the data passed in using Pipeline above, calculates how underpriced/fair/overpriced it is if asking_price provided,
+    and returns the predicted price of the car.
+    '''
+
+    age = max(2026 - year, 1)
+
+    specs_df = pd.DataFrame([{
+        'age': age,
+        'odometer': odometer,
+        'cylinders': cylinders,
+        'Combined (L/100 km)': fuel_consumption,
+        'make': make,
+        'market': np.nan,
+        'title status': title_status,
+        'type': car_type,
+        'fuel': fuel,
+        'drive': drive,
+        'transmission': transmission,
+        'is_dealer': is_dealer
+    }])
+
+    car_preprocessed = preprocessor.transform(specs_df)
+
+    predicted_price = rf_model.predict(car_preprocessed)[0] # returns price as a numpy array, ex. [24581.20], take 0th index to get just price
+
+
+    # Vehicle Valuation Report
+
+    print(f"--- VEHICLE VALUATION REPORT ---")
+    print(f"Vehicle: {year} {make} ({odometer:,} km)")
+    print(f"Estimated Fair Market Value: ${predicted_price:,.2f}")
+    
+    if asking_price is not None:
+        diff = asking_price - predicted_price
+        pct_diff = (diff / predicted_price) * 100
+        print(f"Asking Price: ${asking_price:,.2f}")
+
+        if pct_diff < -10:
+            print(f"Price Verdict: [GREAT DEAL] - ${abs(diff):,.2f} below market value, {abs(pct_diff):.1f}% discount")
+        elif pct_diff > 10:
+            print(f"Price Verdict: [OVERPRICED] - ${diff:,.2f} above market value, +{pct_diff:.1f}% markup")
+        else:
+            print(f"Price Verdict: [FAIR MARKET PRICE] - Within +/- 10% of market value")
+
+    return predicted_price
+
+
+
+predict_car_price(2025, 'Toyota', 0, fuel='hybrid', drive='fwd', fuel_consumption=4.9)
